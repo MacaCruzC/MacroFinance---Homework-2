@@ -1,0 +1,91 @@
+---
+title: 'Macrofinance: Homework 2'
+author: "Iker Caballero & Macarena Cruz"
+date: "4/29/2022"
+output: html_document
+---
+
+# Macrofinance: Homework 2
+
+## Notebook Set-up
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+```
+
+## Import dataset and preprocessing
+
+### Loading the data
+
+```{r}
+dataset <- read_excel("JSTdatasetR5.xlsx", 
+    sheet = "Data")
+
+```
+
+### Subsetting the data
+
+```{r}
+#available_countries = unique(dataset$country)
+#selected_country <- sample(available_countries,1)
+selected_country = 'Norway'
+variables_of_interest = c('year','country','eq_tr','cpi','bill_rate','rconpc')
+data<- subset(dataset,country == selected_country,select = variables_of_interest )
+paste('Selected country:',selected_country)
+```
+
+For this analysis we selected `r selected_country`
+
+### Preprocessing
+
+#### Option 1: delete observations with Null data
+
+```{r}
+data_drop <- na.omit(data)
+```
+
+## CAPM Model
+
+### Estimating the "ingredients"
+
+```{r}
+#Given variables
+gamma = 10
+omega = 0.01
+
+#Log Real consumption growth
+logrconsumption_growth <- log(data_drop$rconpc)-log(lag(data_drop$rconpc))
+data_drop$logrconsumption_growth <- logrconsumption_growth
+exp_lrcg <- mean(na.omit(logrconsumption_growth)) #omit NA in the first observation
+var_lrcg <- var(na.omit(logrconsumption_growth))
+
+# Inflation 
+data_drop$inflation <- (data_drop$cpi-lag(data_drop$cpi))/lag(data_drop$cpi)
+
+#Real equity return in data
+r_eq_tr <- ((1+data_drop$eq_tr)*(lag(data_drop$cpi)/(data_drop$cpi)))-1
+data_drop$r_eq_tr <- r_eq_tr
+
+#Real bill rate
+r_bill_rate <-((1+data_drop$bill_rate)*(lag(data_drop$cpi)/(data_drop$cpi)))-1
+data_drop$r_bill_rate <- r_bill_rate
+#Consumption Beta
+beta_risk = cov(na.omit(r_eq_tr),na.omit(logrconsumption_growth))
+
+```
+
+### Estimating R-safe and Risk premium
+
+```{r}
+r_safe <- omega+gamma*exp_lrcg-0.5*gamma**2*var_lrcg
+risk_premium <-beta_risk*gamma*var_lrcg
+```
+
+### Goodness of fit
+
+```{r}
+
+
+```
